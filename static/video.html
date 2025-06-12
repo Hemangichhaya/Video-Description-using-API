@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🎥 Video Analysis Result</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f6f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 800px;
+      max-width: 95%;
+      background: #fff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 24px;
+      color: #333;
+    }
+
+    /* Fix all heading margins - more aggressive approach */
+    * {
+      box-sizing: border-box;
+    }
+    
+    h1, h2, h3, h4, h5, h6 {
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    /* Add back only the bottom margin we want */
+    .section h3,
+    .section h4 {
+      margin-bottom: 8px !important;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"],
+    input[type="file"],
+    select {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+    }
+
+    button {
+      background-color: #28a745;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    #resultContainer {
+      margin-top: 30px;
+      background: #fafafa;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      white-space: pre-wrap;
+    }
+
+    .error { color: red; }
+    .loading { color: #555; }
+    .success { color: green; }
+
+    .progress-bar {
+      background: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0;
+      height: 20px;
+    }
+
+    .progress-fill {
+      background: #28a745;
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 15px;
+      font-size: 12px;
+      margin: 2px;
+      color: white;
+    }
+
+    .section {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+    }
+
+    /* Ensure no extra spacing in sections */
+    .section > *:first-child {
+      margin-top: 0 !important;
+    }
+
+    .section > *:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .info-card {
+      background: #fafafa;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    /* Fix info card headings */
+    .info-card h4 {
+      margin: 0 0 5px 0 !important;
+    }
+
+    .info-card p {
+      margin: 5px 0 0 0 !important;
+    }
+
+    /* Fix list spacing */
+    ul {
+      margin: 0 !important;
+      padding-left: 20px;
+    }
+
+    li {
+      margin-bottom: 3px;
+    }
+
+    /* Fix paragraph spacing */
+    p {
+      margin: 0 0 10px 0;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 768px) {
+      .two-column {
+        grid-template-columns: 1fr;
+      }
+      
+      .container {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🎥 Video Analysis Result</h2>
+
+    <div class="form-group">
+      <label for="videoUrl">Enter Video URL (optional):</label>
+      <input type="text" id="videoUrl" placeholder="https://example.com/video.mp4" />
+    </div>
+
+    <div class="form-group">
+      <label for="videoFile">Or Upload a Video File:</label>
+      <input type="file" id="videoFile" accept="video/*" />
+    </div>
+
+    <button id="submitBtn" onclick="submitVideo()">Generate</button>
+
+    <div id="resultContainer"></div>
+  </div>
+
+  <script>
+    async function submitVideo() {
+      const videoUrl = document.getElementById("videoUrl").value.trim();
+      const videoFile = document.getElementById("videoFile").files[0];
+      const resultContainer = document.getElementById("resultContainer");
+      const submitBtn = document.getElementById("submitBtn");
+
+      // Validate input
+      if (!videoFile && !videoUrl) {
+        resultContainer.innerHTML = "<p class='error'>❌ Please upload a video or enter a URL.</p>";
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("app_name", "video_analysis_app");
+
+      if (videoFile) {
+        formData.append("video", videoFile);
+      } else if (videoUrl) {
+        formData.append("file_url", videoUrl);
+      }
+
+      // Disable button and show loading
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Processing...";
+      resultContainer.innerHTML = "<p class='loading'>⏳ Uploading and analyzing...</p>";
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/api/v1/analyze_video", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+        console.log("Server response:", data);
+
+        // Check if response contains an error
+        if (data.error) {
+          resultContainer.innerHTML = `<p class='error'>❌ Error: ${data.error}</p>`;
+          return;
+        }
+
+        // Check if response is successful and contains task_id
+        if (!response.ok) {
+          resultContainer.innerHTML = `<p class='error'>❌ Server error: ${response.status} ${response.statusText}</p>`;
+          return;
+        }
+
+        const taskId = data.task_id;
+        if (!taskId) {
+          resultContainer.innerHTML = `
+            <p class='error'>❌ Task ID missing in response.</p>
+            <p>Full response:</p>
+            <pre>${JSON.stringify(data, null, 2)}</pre>
+          `;
+          return;
+        }
+
+        resultContainer.innerHTML = `<p class='loading'>⏳ Video analysis in progress... Please wait.</p>`;
+
+        // Start polling for results automatically
+        pollResult(taskId);
+
+      } catch (error) {
+        console.error("Upload Error:", error);
+        resultContainer.innerHTML = `<p class='error'>❌ Upload failed: ${error.message}</p>`;
+      } finally {
+        // Re-enable button
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Generate";
+      }
+    }
+
+    // Function to poll for results and display description
+    async function pollResult(taskId) {
+      const maxAttempts = 120; // 10 minutes with 5-second intervals
+      let attempts = 0;
+
+      const poll = async () => {
+        try {
+          const response = await fetch(`http://127.0.0.1:8000/api/v1/analysis_result/${taskId}`);
+          const result = await response.json();
+
+          if (result.status === "pending") {
+            const progress = result.progress || 0;
+            const currentStep = result.current_step || "Processing";
+            
+            document.getElementById("resultContainer").innerHTML = `
+              <p class='loading'>⏳ ${currentStep}... Progress: ${progress}%</p>
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${progress}%;"></div>
+              </div>
+            `;
+            
+            if (attempts < maxAttempts) {
+              attempts++;
+              setTimeout(poll, 5000); // Poll every 5 seconds
+            } else {
+              document.getElementById("resultContainer").innerHTML = `
+                <p class='error'>❌ Analysis timeout. Please try again.</p>
+              `;
+            }
+          } else if (result.error) {
+            // Handle error case
+            document.getElementById("resultContainer").innerHTML = `
+              <p class='error'>❌ Analysis failed: ${result.error}</p>
+            `;
+          } else {
+            // Analysis complete - display the full result
+            document.getElementById("resultContainer").innerHTML = formatAnalysisResult(result);
+          }
+        } catch (error) {
+          console.error("Polling error:", error);
+          document.getElementById("resultContainer").innerHTML = `
+            <p class='error'>❌ Error checking analysis status: ${error.message}</p>
+          `;
+        }
+      };
+
+      // Start polling immediately
+      poll();
+    }
+
+    // Function to format the complete analysis result
+    function formatAnalysisResult(result) {
+      let html = '<div style="max-width: 100%; margin: 0 auto;">';
+      
+      // Header
+      const isUnsafe = result.is_safe === false;
+      html += `
+        <div style="background: ${isUnsafe ? '#f8d7da' : '#d4edda'}; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid ${isUnsafe ? '#dc3545' : '#28a745'};">
+          <h2 style="margin: 0; color: ${isUnsafe ? '#721c24' : '#155724'};">
+            ${isUnsafe ? '⚠️' : '✅'} Video Analysis Complete
+          </h2>
+          <p style="margin: 5px 0 0 0; color: ${isUnsafe ? '#721c24' : '#155724'};">
+            Status: <strong>${isUnsafe ? 'Content Flagged' : 'Safe Content'}</strong>
+          </p>
+        </div>
+      `;
+
+      // Description
+      if (result.description) {
+        html += `
+          <div class="section" style="border-left: 4px solid #007bff;">
+            <h3 style="color: #007bff; margin: 0 0 10px 0 !important; padding: 0 !important;">📝 Description</h3>
+            <p style="line-height: 1.6; color: #333;">
+              ${result.description.replace(/\n/g, '<br>')}
+            </p>
+          </div>
+        `;
+      }
+
+      // Content Warnings (if any)
+      if (result.content_warnings && result.content_warnings.length > 0) {
+        html += `
+          <div style="background: #fff3cd; padding: 20px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+            <h3 style="color: #856404; margin: 0 0 10px 0;">⚠️ Content Warnings</h3>
+            <ul style="color: #856404;">
+        `;
+        result.content_warnings.forEach(warning => {
+          html += `<li>${warning}</li>`;
+        });
+        html += '</ul></div>';
+      }
+
+      // Two column layout for the rest
+      html += '<div class="two-column">';
+
+      // Left Column
+      html += '<div>';
+
+      // Keywords
+      if (result.keywords && result.keywords.length > 0) {
+        html += `
+          <div class="section" style="background: #e7f3ff;">
+            <h4 style="color: #0066cc; margin: 0 0 8px 0 !important; padding: 0 !important;">🔑 Keywords</h4>
+            <div>
+        `;
+        result.keywords.forEach(kw => {
+          const intensity = Math.min(kw.weight * 10, 100) / 100;
+          html += `
+            <span class="tag" style="background: rgba(0,102,204,${Math.max(intensity, 0.3)});">
+              ${kw.keyword} (${kw.weight})
+            </span>
+          `;
+        });
+        html += '</div></div>';
+      }
+
+      // Topics
+      if (result.topics && result.topics.length > 0) {
+        html += `
+          <div class="section" style="background: #f0f8f0;">
+            <h4 style="color: #2d6e2d; margin: 0 0 8px 0 !important; padding: 0 !important;">📚 Topics</h4>
+            <div>
+        `;
+        result.topics.forEach(topic => {
+          html += `<span class="tag" style="background: #28a745;">${topic}</span>`;
+        });
+        html += '</div></div>';
+      }
+
+      // Emotions
+      if (result.emotions && result.emotions.length > 0) {
+        html += `
+          <div class="section" style="background: #fff0f5;">
+            <h4 style="color: #d63384; margin: 0 0 8px 0 !important; padding: 0 !important;">😊 Emotions</h4>
+            <div>
+        `;
+        result.emotions.forEach(emotion => {
+          html += `<span class="tag" style="background: #d63384;">${emotion}</span>`;
+        });
+        html += '</div></div>';
+      }
+
+      html += '</div>'; // End left column
+
+      // Right Column
+      html += '<div>';
+
+      // Actions
+      if (result.actions && result.actions.length > 0) {
+        html += `
+          <div class="section" style="background: #fff8e1;">
+            <h4 style="color: #f57c00; margin: 0 0 8px 0 !important; padding: 0 !important;">🎬 Actions</h4>
+            <ul style="color: #f57c00;">
+        `;
+        result.actions.forEach(action => {
+          html += `<li>${action}</li>`;
+        });
+        html += '</ul></div>';
+      }
+
+      // Entities
+      if (result.entities && result.entities.length > 0) {
+        html += `
+          <div class="section" style="background: #f3e5f5;">
+            <h4 style="color: #7b1fa2; margin: 0 0 8px 0 !important; padding: 0 !important;">🏷️ Entities</h4>
+            <div>
+        `;
+        result.entities.forEach(entity => {
+          html += `<span class="tag" style="background: #7b1fa2;">${entity}</span>`;
+        });
+        html += '</div></div>';
+      }
+
+      // Visual Elements
+      if (result.visual_elements && result.visual_elements.length > 0) {
+        html += `
+          <div class="section" style="background: #e8f5e8;">
+            <h4 style="color: #388e3c; margin: 0 0 8px 0 !important; padding: 0 !important;">👁️ Visual Elements</h4>
+            <ul style="color: #388e3c;">
+        `;
+        result.visual_elements.forEach(element => {
+          html += `<li>${element}</li>`;
+        });
+        html += '</ul></div>';
+      }
+
+      html += '</div>'; // End right column
+      html += '</div>'; // End two column layout
+
+      // Full width sections
+      // Audio Elements
+      if (result.audio_elements && result.audio_elements.length > 0) {
+        html += `
+          <div class="section" style="background: #e3f2fd;">
+            <h4 style="color: #1976d2; margin: 0 0 8px 0 !important; padding: 0 !important;">🔊 Audio Elements</h4>
+            <ul style="color: #1976d2;">
+        `;
+        result.audio_elements.forEach(element => {
+          html += `<li>${element}</li>`;
+        });
+        html += '</ul></div>';
+      }
+
+      // Additional Information
+      html += '<div class="info-grid">';
+
+              if (result.genre) {
+        html += `
+          <div class="info-card">
+            <h4 style="color: #666; margin: 0 0 5px 0 !important; padding: 0 !important;">🎭 Genre</h4>
+            <p style="font-weight: bold; color: #333;">${result.genre}</p>
+          </div>
+        `;
+      }
+
+      if (result.target_audience && result.target_audience.length > 0) {
+        html += `
+          <div class="info-card">
+            <h4 style="color: #666; margin: 0 0 5px 0 !important; padding: 0 !important;">👥 Target Audience</h4>
+            <p style="font-weight: bold; color: #333;">${result.target_audience.join(', ')}</p>
+          </div>
+        `;
+      }
+
+      if (result.is_face_exist !== undefined) {
+        html += `
+          <div class="info-card">
+            <h4 style="color: #666; margin: 0 0 5px 0 !important; padding: 0 !important;">👤 Faces Detected</h4>
+            <p style="font-weight: bold; color: #333;">${result.is_face_exist ? 'Yes' : 'No'}</p>
+          </div>
+        `;
+      }
+
+      if (result.no_of_person_in_video !== undefined) {
+        html += `
+          <div class="info-card">
+            <h4 style="color: #666; margin: 0 0 5px 0 !important; padding: 0 !important;">👥 People Count</h4>
+            <p style="font-weight: bold; color: #333;">${result.no_of_person_in_video}</p>
+          </div>
+        `;
+      }
+
+      html += '</div>'; // End additional info grid
+
+      // Psychology and Identity (if available)
+      if (result.psychological_personality || result.person_identity || result.other_person_identity) {
+        html += '<div class="two-column">';
+        
+        if (result.psychological_personality && result.psychological_personality.length > 0) {
+          html += `
+            <div class="section" style="background: #ffeaa7;">
+              <h4 style="color: #d63031; margin: 0 0 8px 0 !important; padding: 0 !important;">🧠 Psychological Traits</h4>
+              <div>
+          `;
+          result.psychological_personality.forEach(trait => {
+            html += `<span class="tag" style="background: #d63031;">${trait}</span>`;
+          });
+          html += '</div></div>';
+        }
+
+        if (result.person_identity && (result.person_identity.name !== 'unknown' || result.person_identity.gender !== 'unspecified')) {
+          html += `
+            <div class="section" style="background: #e17055;">
+              <h4 style="color: #2d3436; margin: 0 0 8px 0 !important; padding: 0 !important;">👤 Person Identity</h4>
+              <p style="color: #2d3436;">
+                Name: <strong>${result.person_identity.name || 'Unknown'}</strong><br>
+                Gender: <strong>${result.person_identity.gender || 'Unspecified'}</strong>
+              </p>
+            </div>
+          `;
+        }
+
+        html += '</div>';
+      }
+
+      html += '</div>'; // End main container
+      
+      return html;
+    }
+  </script>
+</body>
+</html>
